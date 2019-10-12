@@ -11,15 +11,16 @@
 #define GSM_RX_pin    15
 #define GSM_POWER_pin 9
 
-#define CMD_pin 10
-#define BUZZER_pin 2
-#define CONTACT0_pin 3
-#define MOVE0_pin 4
-#define MOVE1_pin 5
-#define MOVE2_pin 6
-#define MOVE3_pin 7
-#define MOVE4_pin 8
-#define MOVE5_pin 9
+#define MOVE0_pin A15
+#define MOVE1_pin A14
+#define MOVE2_pin A13
+#define MOVE3_pin A12
+#define MOVE4_pin A11
+#define MOVE5_pin A10
+#define MOVE_GARAGE_pin A9
+
+#define BUZZER_pin 14
+#define CMD_pin 15
 
 /* *****************************
  *  Global variables
@@ -41,8 +42,8 @@ uint32_t alarm_time = 0;
  * *****************************
  */
 
-bool gprs_printIsEnabled  = true;
-#define GPRS_PRINT(m)  if(true == gprs_printIsEnabled) { m }
+bool alarm_printIsEnabled  = true;
+#define ALARM_PRINT(m)  if(true == alarm_printIsEnabled) { m }
 
 /* *****************************
  *  Command lines funstions
@@ -69,17 +70,17 @@ void gprsGetSignalStrength(int arg_cnt, char **args) {
 void gprsPowerUpDown(int arg_cnt, char **args) { gprs.powerUpDown(GSM_POWER_pin); Serial.println("GPRS power Up-Down done"); }
 void gprsCheckPowerUp(int arg_cnt, char **args) { Serial.print("GPRS check power up..."); if(true == gprs.checkPowerUp()) { Serial.println("OK"); } else { Serial.println("ERROR"); } }
 void gprsInit(int arg_cnt, char **args) { Serial.print("GPRS init..."); if(true == gprs.init()) { Serial.println("OK"); } else { Serial.println("ERROR"); } }
-void gprsEnablePrint(int arg_cnt, char **args) { gprs_printIsEnabled = true; Serial.println("GPRS print enabled"); }
-void gprsDisablePrint(int arg_cnt, char **args) { gprs_printIsEnabled = false; Serial.println("GPRS print disabled"); }
+void gprsEnablePrint(int arg_cnt, char **args) { alarm_printIsEnabled = true; Serial.println("GPRS print enabled"); }
+void gprsDisablePrint(int arg_cnt, char **args) { alarm_printIsEnabled = false; Serial.println("GPRS print disabled"); }
 
 void setup() {
   Serial.begin(115200);
   Serial.println("RF_TRX Starting...");
 
-/* ****************************
- *  Pin configuration
- * ****************************
- */
+  /* ****************************
+   *  Pin configuration
+   * ****************************
+   */
   pinMode(LED_pin, OUTPUT); 
 
   pinMode(GSM_TX_pin, OUTPUT);
@@ -88,20 +89,21 @@ void setup() {
   pinMode(GSM_POWER_pin, OUTPUT);
   digitalWrite(GSM_POWER_pin, LOW);
 
-  pinMode(CMD_pin, INPUT_PULLUP);
-  pinMode(BUZZER_pin, OUTPUT);
-  pinMode(CONTACT0_pin, INPUT_PULLUP);
   pinMode(MOVE0_pin, INPUT_PULLUP);
   pinMode(MOVE1_pin, INPUT_PULLUP);
   pinMode(MOVE2_pin, INPUT_PULLUP);
   pinMode(MOVE3_pin, INPUT_PULLUP);
   pinMode(MOVE4_pin, INPUT_PULLUP);
   pinMode(MOVE5_pin, INPUT_PULLUP);
+  pinMode(MOVE_GARAGE_pin, INPUT);
 
-/* ****************************
- *  Modules initialization
- * ****************************
- */
+  pinMode(BUZZER_pin, OUTPUT);
+  pinMode(CMD_pin, INPUT_PULLUP);
+
+  /* ****************************
+   *  Modules initialization
+   * ****************************
+   */
 
   gprs.init();
 
@@ -139,19 +141,21 @@ void loop() {
 
   if(LOW == cmd_current) {
     if(HIGH == cmd_previous) {
+      ALARM_PRINT( Serial.println("Alarme ON"); )
       digitalWrite(BUZZER_pin, HIGH);
       delay(200);
       digitalWrite(BUZZER_pin, LOW);
     }
     cmd_previous = LOW;
-    if((HIGH == digitalRead(CONTACT0_pin)) \
-    || (HIGH == digitalRead(MOVE0_pin)) \
-    || (HIGH == digitalRead(MOVE1_pin)) \
-    || (HIGH == digitalRead(MOVE2_pin)) \
-    || (HIGH == digitalRead(MOVE3_pin)) \
-    || (HIGH == digitalRead(MOVE4_pin)) \
-    || (HIGH == digitalRead(MOVE5_pin))) {
+    if((HIGH == digitalRead(MOVE_GARAGE_pin)) \
+    || (LOW == digitalRead(MOVE0_pin)) \
+    || (LOW == digitalRead(MOVE1_pin)) \
+    || (LOW == digitalRead(MOVE2_pin)) \
+    || (LOW == digitalRead(MOVE3_pin)) \
+    || (LOW == digitalRead(MOVE4_pin)) \
+    || (LOW == digitalRead(MOVE5_pin))) {
       if(false == alarm_triggered) {
+        ALARM_PRINT( Serial.println("Alerte ! Alarme declanchee"); )
         gprs.sendSMS("0612345678", "Alerte ! Alarme declanchee !");
       }
       alarm_triggered = true;
@@ -192,13 +196,13 @@ void loop() {
     if(6 < gprs_checkPowerUp_counter) {
       /* Initialiaze counter for the new cycle */
       gprs_checkPowerUp_counter = 0;
-      GPRS_PRINT( Serial.print("Powering up GPRS..."); )
+      ALARM_PRINT( Serial.print("Powering up GPRS..."); )
       /* Toggle the power og the GPRS shield */
       gprs.powerUpDown(GSM_POWER_pin);
-      GPRS_PRINT( Serial.println("done"); )
-      GPRS_PRINT( Serial.print("GPRS init..."); )
+      ALARM_PRINT( Serial.println("done"); )
+      ALARM_PRINT( Serial.print("GPRS init..."); )
       /* Try to initialize thr shield */
-      if(true == gprs.init()) { GPRS_PRINT( Serial.println("OK"); ) } else { GPRS_PRINT( Serial.println("ERROR"); ) }
+      if(true == gprs.init()) { ALARM_PRINT( Serial.println("OK"); ) } else { ALARM_PRINT( Serial.println("ERROR"); ) }
     }
   }
 
