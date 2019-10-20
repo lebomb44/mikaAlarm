@@ -34,6 +34,7 @@ uint32_t gprs_checkPowerUp_counter = 0;
 uint16_t cmd_nb = 0;
 bool cmd_current = false;
 bool cmd_previous = false;
+bool alarm_started = false;
 bool alarm_triggered = false;
 uint32_t alarm_time = 0;
 
@@ -147,6 +148,7 @@ void loop() {
       digitalWrite(BUZZER_pin, LOW);
     }
     cmd_previous = true;
+
     if((HIGH == digitalRead(MOVE_GARAGE_pin)) \
     || (HIGH == digitalRead(MOVE0_pin)) \
     || (HIGH == digitalRead(MOVE1_pin)) \
@@ -154,18 +156,26 @@ void loop() {
     || (HIGH == digitalRead(MOVE3_pin)) \
     || (LOW == digitalRead(MOVE_EXT0_pin)) \
     || (LOW == digitalRead(MOVE_EXT1_pin))) {
-      if(false == alarm_triggered) {
-        ALARM_PRINT( Serial.print("Garage: "); Serial.println(digitalRead(MOVE_GARAGE_pin)); )
-        ALARM_PRINT( Serial.print("Move0 : "); Serial.println(digitalRead(MOVE0_pin)); )
-        ALARM_PRINT( Serial.print("Move1 : "); Serial.println(digitalRead(MOVE1_pin)); )
-        ALARM_PRINT( Serial.print("Move2 : "); Serial.println(digitalRead(MOVE2_pin)); )
-        ALARM_PRINT( Serial.print("Move3 : "); Serial.println(digitalRead(MOVE3_pin)); )
-        ALARM_PRINT( Serial.print("Ext0  : "); Serial.println(!digitalRead(MOVE_EXT0_pin)); )
-        ALARM_PRINT( Serial.print("Ext1  : "); Serial.println(!digitalRead(MOVE_EXT1_pin)); )
-        ALARM_PRINT( Serial.println("Alerte ! Alarme declanchee"); )
-        //gprs.sendSMS("0612345678", "Alerte ! Alarme declanchee !");
+      if(true == alarm_started) {
+        if(false == alarm_triggered) {
+          ALARM_PRINT( Serial.print("Garage: "); Serial.println(digitalRead(MOVE_GARAGE_pin)); )
+          ALARM_PRINT( Serial.print("Move0 : "); Serial.println(digitalRead(MOVE0_pin)); )
+          ALARM_PRINT( Serial.print("Move1 : "); Serial.println(digitalRead(MOVE1_pin)); )
+          ALARM_PRINT( Serial.print("Move2 : "); Serial.println(digitalRead(MOVE2_pin)); )
+          ALARM_PRINT( Serial.print("Move3 : "); Serial.println(digitalRead(MOVE3_pin)); )
+          ALARM_PRINT( Serial.print("Ext0  : "); Serial.println(!digitalRead(MOVE_EXT0_pin)); )
+          ALARM_PRINT( Serial.print("Ext1  : "); Serial.println(!digitalRead(MOVE_EXT1_pin)); )
+          ALARM_PRINT( Serial.println("Alerte ! Alarme declanchee"); )
+          //gprs.sendSMS("0612345678", "Alerte ! Alarme declanchee !");
+        }
+        alarm_triggered = true;
       }
-      alarm_triggered = true;
+    }
+    else {
+      if(false == alarm_started) {
+        ALARM_PRINT( Serial.println("Starting Alarm"); )
+      }
+      alarm_started = true;
     }
   }
   else {
@@ -174,15 +184,22 @@ void loop() {
     }
     digitalWrite(BUZZER_pin, LOW);
     cmd_previous = false;
+    alarm_started = false;
     alarm_triggered = false;
   }
   if(true == alarm_triggered) {
-    if(alarm_time < 50000) {
+    if(alarm_time < 500000) {
       digitalWrite(BUZZER_pin, HIGH);
+      if(alarm_time == 0) {
+        ALARM_PRINT( Serial.println("Buzzer ON"); )
+      }
       alarm_time++;
     }
     else {
       digitalWrite(BUZZER_pin, LOW);
+      ALARM_PRINT( Serial.println("Buzzer OFF"); )
+      alarm_time = 0;
+      alarm_triggered = false;
     }
   }
   else {
@@ -190,9 +207,9 @@ void loop() {
     alarm_time = 0;
   }
 
-  //gprs_checkPowerUp_task++;
+  gprs_checkPowerUp_task++;
   /* Check GPRS power every 10 seconds */
-  if(10000 < gprs_checkPowerUp_task) {
+  if(100000 < gprs_checkPowerUp_task) {
     /* Initialiaze counter for the new cycle */
     gprs_checkPowerUp_task=0;
     /* Power Up cycle */
