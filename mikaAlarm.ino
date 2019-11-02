@@ -143,7 +143,7 @@ void loop() {
   if(true == cmd_current) {
     if(false == cmd_previous) {
       ALARM_PRINT( Serial.println("Alarm ON"); )
-      digitalWrite(BUZZER_pin, HIGH);
+      //digitalWrite(BUZZER_pin, HIGH);
       delay(200);
       digitalWrite(BUZZER_pin, LOW);
     }
