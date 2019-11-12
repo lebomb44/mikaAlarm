@@ -11,16 +11,16 @@
 #define GSM_RX_pin    15
 #define GSM_POWER_pin 9
 
+#define MOVE_GARAGE_pin A9
 #define MOVE0_pin A15
 #define MOVE1_pin A14
 #define MOVE2_pin A13
 #define MOVE3_pin A12
-#define MOVE4_pin A11
-#define MOVE5_pin A10
-#define MOVE_GARAGE_pin A9
+#define MOVE_EXT0_pin A11
+#define MOVE_EXT1_pin A10
 
-#define BUZZER_pin 14
-#define CMD_pin 15
+#define BUZZER_pin 17
+#define CMD_pin 16
 
 /* *****************************
  *  Global variables
@@ -32,8 +32,9 @@ uint32_t gprs_checkPowerUp_counter = 0;
 
 #define CMD_NB_MAX 500
 uint16_t cmd_nb = 0;
-int cmd_current = HIGH;
-int cmd_previous = HIGH;
+bool cmd_current = false;
+bool cmd_previous = false;
+bool alarm_started = false;
 bool alarm_triggered = false;
 uint32_t alarm_time = 0;
 
@@ -75,7 +76,7 @@ void gprsDisablePrint(int arg_cnt, char **args) { alarm_printIsEnabled = false; 
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("RF_TRX Starting...");
+  Serial.println("Mika Alarm Starting...");
 
   /* ****************************
    *  Pin configuration
@@ -89,13 +90,13 @@ void setup() {
   pinMode(GSM_POWER_pin, OUTPUT);
   digitalWrite(GSM_POWER_pin, LOW);
 
+  pinMode(MOVE_GARAGE_pin, INPUT);
   pinMode(MOVE0_pin, INPUT_PULLUP);
   pinMode(MOVE1_pin, INPUT_PULLUP);
   pinMode(MOVE2_pin, INPUT_PULLUP);
   pinMode(MOVE3_pin, INPUT_PULLUP);
-  pinMode(MOVE4_pin, INPUT_PULLUP);
-  pinMode(MOVE5_pin, INPUT_PULLUP);
-  pinMode(MOVE_GARAGE_pin, INPUT);
+  pinMode(MOVE_EXT0_pin, INPUT_PULLUP);
+  pinMode(MOVE_EXT1_pin, INPUT_PULLUP);
 
   pinMode(BUZZER_pin, OUTPUT);
   pinMode(CMD_pin, INPUT_PULLUP);
@@ -126,53 +127,79 @@ void setup() {
 }
 
 void loop() {
-  if(true == digitalRead(CMD_pin)) {
-    if(0 < cmd_nb) { cmd_nb--; }
-  }
-  else {
+  if(LOW == digitalRead(CMD_pin)) {
     if(cmd_nb < CMD_NB_MAX) { cmd_nb++; }
   }
-  if(cmd_nb < CMD_NB_MAX / 2) {
-    cmd_current = HIGH;
+  else {
+    if(0 < cmd_nb) { cmd_nb--; }
+  }
+  if(cmd_nb > CMD_NB_MAX / 2) {
+    cmd_current = true;
   }
   else {
-    cmd_current = LOW;
+    cmd_current = false;
   }
 
-  if(LOW == cmd_current) {
-    if(HIGH == cmd_previous) {
-      ALARM_PRINT( Serial.println("Alarme ON"); )
-      digitalWrite(BUZZER_pin, HIGH);
+  if(true == cmd_current) {
+    if(false == cmd_previous) {
+      ALARM_PRINT( Serial.println("Alarm ON"); )
+      //digitalWrite(BUZZER_pin, HIGH);
       delay(200);
       digitalWrite(BUZZER_pin, LOW);
     }
-    cmd_previous = LOW;
+    cmd_previous = true;
+
     if((HIGH == digitalRead(MOVE_GARAGE_pin)) \
-    || (LOW == digitalRead(MOVE0_pin)) \
-    || (LOW == digitalRead(MOVE1_pin)) \
-    || (LOW == digitalRead(MOVE2_pin)) \
-    || (LOW == digitalRead(MOVE3_pin)) \
-    || (LOW == digitalRead(MOVE4_pin)) \
-    || (LOW == digitalRead(MOVE5_pin))) {
-      if(false == alarm_triggered) {
-        ALARM_PRINT( Serial.println("Alerte ! Alarme declanchee"); )
-        gprs.sendSMS("0612345678", "Alerte ! Alarme declanchee !");
+    || (HIGH == digitalRead(MOVE0_pin)) \
+    || (HIGH == digitalRead(MOVE1_pin)) \
+    || (HIGH == digitalRead(MOVE2_pin)) \
+    || (HIGH == digitalRead(MOVE3_pin)) \
+    || (LOW == digitalRead(MOVE_EXT0_pin)) \
+    || (LOW == digitalRead(MOVE_EXT1_pin))) {
+      if(true == alarm_started) {
+        if(false == alarm_triggered) {
+          ALARM_PRINT( Serial.print("Garage: "); Serial.println(digitalRead(MOVE_GARAGE_pin)); )
+          ALARM_PRINT( Serial.print("Move0 : "); Serial.println(digitalRead(MOVE0_pin)); )
+          ALARM_PRINT( Serial.print("Move1 : "); Serial.println(digitalRead(MOVE1_pin)); )
+          ALARM_PRINT( Serial.print("Move2 : "); Serial.println(digitalRead(MOVE2_pin)); )
+          ALARM_PRINT( Serial.print("Move3 : "); Serial.println(digitalRead(MOVE3_pin)); )
+          ALARM_PRINT( Serial.print("Ext0  : "); Serial.println(!digitalRead(MOVE_EXT0_pin)); )
+          ALARM_PRINT( Serial.print("Ext1  : "); Serial.println(!digitalRead(MOVE_EXT1_pin)); )
+          ALARM_PRINT( Serial.println("Alerte ! Alarme declanchee"); )
+          //gprs.sendSMS("0612345678", "Alerte ! Alarme declanchee !");
+        }
+        alarm_triggered = true;
       }
-      alarm_triggered = true;
+    }
+    else {
+      if(false == alarm_started) {
+        ALARM_PRINT( Serial.println("Starting Alarm"); )
+      }
+      alarm_started = true;
     }
   }
   else {
+    if(true == cmd_previous) {
+      ALARM_PRINT( Serial.println("Alarm OFF"); )
+    }
     digitalWrite(BUZZER_pin, LOW);
-    cmd_previous = HIGH;
+    cmd_previous = false;
+    alarm_started = false;
     alarm_triggered = false;
   }
   if(true == alarm_triggered) {
-    if(alarm_time < 5000) {
+    if(alarm_time < 500000) {
       digitalWrite(BUZZER_pin, HIGH);
+      if(alarm_time == 0) {
+        ALARM_PRINT( Serial.println("Buzzer ON"); )
+      }
       alarm_time++;
     }
     else {
       digitalWrite(BUZZER_pin, LOW);
+      ALARM_PRINT( Serial.println("Buzzer OFF"); )
+      alarm_time = 0;
+      alarm_triggered = false;
     }
   }
   else {
@@ -182,15 +209,17 @@ void loop() {
 
   gprs_checkPowerUp_task++;
   /* Check GPRS power every 10 seconds */
-  if(10000 < gprs_checkPowerUp_task) {
+  if(100000 < gprs_checkPowerUp_task) {
     /* Initialiaze counter for the new cycle */
     gprs_checkPowerUp_task=0;
     /* Power Up cycle */
     gprs_checkPowerUp_counter++;
     /* Get the signal strength and set it in the message */
     /* But also reset the power Up timeout */
+    ALARM_PRINT( Serial.print("Checking GPRS signal strength..."); )
     int signalStrengthValue = 0;
     if(true == gprs.getSignalStrength(&signalStrengthValue)) { gprs_checkPowerUp_counter = 0; }
+    ALARM_PRINT( Serial.println("done"); )
     /* Timeout ! */
     /* We have to turn ON the GPRS shield after 6 attempts */
     if(6 < gprs_checkPowerUp_counter) {
