@@ -166,7 +166,13 @@ void loop() {
           ALARM_PRINT( Serial.print("Ext0  : "); Serial.println(!digitalRead(MOVE_EXT0_pin)); )
           ALARM_PRINT( Serial.print("Ext1  : "); Serial.println(!digitalRead(MOVE_EXT1_pin)); )
           ALARM_PRINT( Serial.println("Alerte ! Alarme declanchee"); )
-          //gprs.sendSMS("0612345678", "Alerte ! Alarme declanchee !");
+          ALARM_PRINT( Serial.print("Sending SMS..."); )
+          if(true == gprs.sendSMS("0602732751", "Alerte ! Alarme declanchee !")) {
+            ALARM_PRINT( Serial.println("OK"); )
+          }
+          else {
+            ALARM_PRINT( Serial.println("ERROR"); )
+          }
         }
         alarm_triggered = true;
       }
@@ -209,7 +215,7 @@ void loop() {
 
   gprs_checkPowerUp_task++;
   /* Check GPRS power every 10 seconds */
-  if(100000 < gprs_checkPowerUp_task) {
+  if(10000 < gprs_checkPowerUp_task) {
     /* Initialiaze counter for the new cycle */
     gprs_checkPowerUp_task=0;
     /* Power Up cycle */
@@ -218,8 +224,13 @@ void loop() {
     /* But also reset the power Up timeout */
     ALARM_PRINT( Serial.print("Checking GPRS signal strength..."); )
     int signalStrengthValue = 0;
-    if(true == gprs.getSignalStrength(&signalStrengthValue)) { gprs_checkPowerUp_counter = 0; }
-    ALARM_PRINT( Serial.println("done"); )
+    if(true == gprs.getSignalStrength(&signalStrengthValue)) {
+      gprs_checkPowerUp_counter = 0;
+      ALARM_PRINT( Serial.println("OK"); )
+    }
+    else {
+      ALARM_PRINT( Serial.println("ERROR"); )
+    }
     /* Timeout ! */
     /* We have to turn ON the GPRS shield after 6 attempts */
     if(6 < gprs_checkPowerUp_counter) {
