@@ -122,7 +122,7 @@ void setup() {
   cmdAdd("gprsEnablePrint", "Enable print in GPRS lib", gprsEnablePrint);
   cmdAdd("gprsDisablePrint", "Disable print in GPRS lib", gprsDisablePrint);
   cmdAdd("help", "List commands", cmdList);
-  
+
   Serial.println("Mika Alarm Init done");
 }
 
@@ -215,7 +215,7 @@ void loop() {
 
   gprs_checkPowerUp_task++;
   /* Check GPRS power every 10 seconds */
-  if(10000 < gprs_checkPowerUp_task) {
+  if(100000 < gprs_checkPowerUp_task) {
     /* Initialiaze counter for the new cycle */
     gprs_checkPowerUp_task=0;
     /* Power Up cycle */
