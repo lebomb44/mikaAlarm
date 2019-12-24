@@ -12,10 +12,10 @@
 #define GSM_POWER_pin 9
 
 #define MOVE_GARAGE_pin A9
-#define MOVE0_pin A15
-#define MOVE1_pin A14
-#define MOVE2_pin A13
-#define MOVE3_pin A12
+#define MOVE_ENTRY_pin A15
+#define MOVE_CORRIDOR_pin A14
+#define MOVE_DINING_pin A13
+#define MOVE_SPARE_pin A12
 #define MOVE_EXT0_pin A11
 #define MOVE_EXT1_pin A10
 
@@ -45,6 +45,7 @@ uint32_t alarm_time = 0;
 
 bool alarm_printIsEnabled  = true;
 #define ALARM_PRINT(m)  if(true == alarm_printIsEnabled) { m }
+#define MSG_ALERT "Alerte ! Alarme declanchee: "
 
 /* *****************************
  *  Command lines funstions
@@ -91,10 +92,10 @@ void setup() {
   digitalWrite(GSM_POWER_pin, LOW);
 
   pinMode(MOVE_GARAGE_pin, INPUT);
-  pinMode(MOVE0_pin, INPUT_PULLUP);
-  pinMode(MOVE1_pin, INPUT_PULLUP);
-  pinMode(MOVE2_pin, INPUT_PULLUP);
-  pinMode(MOVE3_pin, INPUT_PULLUP);
+  pinMode(MOVE_ENTRY_pin, INPUT_PULLUP);
+  pinMode(MOVE_CORRIDOR_pin, INPUT_PULLUP);
+  pinMode(MOVE_DINING_pin, INPUT_PULLUP);
+  pinMode(MOVE_SPARE_pin, INPUT_PULLUP);
   pinMode(MOVE_EXT0_pin, INPUT_PULLUP);
   pinMode(MOVE_EXT1_pin, INPUT_PULLUP);
 
@@ -150,24 +151,36 @@ void loop() {
     cmd_previous = true;
 
     if((HIGH == digitalRead(MOVE_GARAGE_pin)) \
-    || (HIGH == digitalRead(MOVE0_pin)) \
-    || (HIGH == digitalRead(MOVE1_pin)) \
-    || (HIGH == digitalRead(MOVE2_pin)) \
-    || (HIGH == digitalRead(MOVE3_pin)) \
+    || (HIGH == digitalRead(MOVE_ENTRY_pin)) \
+    || (HIGH == digitalRead(MOVE_CORRIDOR_pin)) \
+    || (HIGH == digitalRead(MOVE_DINING_pin)) \
+    || (HIGH == digitalRead(MOVE_SPARE_pin)) \
     || (LOW == digitalRead(MOVE_EXT0_pin)) \
     || (LOW == digitalRead(MOVE_EXT1_pin))) {
       if(true == alarm_started) {
         if(false == alarm_triggered) {
           ALARM_PRINT( Serial.print("Garage: "); Serial.println(digitalRead(MOVE_GARAGE_pin)); )
-          ALARM_PRINT( Serial.print("Move0 : "); Serial.println(digitalRead(MOVE0_pin)); )
-          ALARM_PRINT( Serial.print("Move1 : "); Serial.println(digitalRead(MOVE1_pin)); )
-          ALARM_PRINT( Serial.print("Move2 : "); Serial.println(digitalRead(MOVE2_pin)); )
-          ALARM_PRINT( Serial.print("Move3 : "); Serial.println(digitalRead(MOVE3_pin)); )
+          ALARM_PRINT( Serial.print("Entry : "); Serial.println(digitalRead(MOVE_ENTRY_pin)); )
+          ALARM_PRINT( Serial.print("Corridor : "); Serial.println(digitalRead(MOVE_CORRIDOR_pin)); )
+          ALARM_PRINT( Serial.print("Dining : "); Serial.println(digitalRead(MOVE_DINING_pin)); )
+          ALARM_PRINT( Serial.print("Spare : "); Serial.println(digitalRead(MOVE_SPARE_pin)); )
           ALARM_PRINT( Serial.print("Ext0  : "); Serial.println(!digitalRead(MOVE_EXT0_pin)); )
           ALARM_PRINT( Serial.print("Ext1  : "); Serial.println(!digitalRead(MOVE_EXT1_pin)); )
-          ALARM_PRINT( Serial.println("Alerte ! Alarme declanchee"); )
+
+          char msg[sizeof(MSG_ALERT)+10] = {0};
+          memset(msg, 0, sizeof(msg));
+          strcpy(msg, MSG_ALERT);
+          if(HIGH == digitalRead(MOVE_GARAGE_pin)) { strcat(msg, "Garage"); }
+          else if(HIGH == digitalRead(MOVE_ENTRY_pin)) { strcat(msg, "Entree"); }
+          else if(HIGH == digitalRead(MOVE_CORRIDOR_pin)) { strcat(msg, "Corridor"); }
+          else if(HIGH == digitalRead(MOVE_DINING_pin)) { strcat(msg, "Salon"); }
+          else if(HIGH == digitalRead(MOVE_SPARE_pin)) { strcat(msg, "Spare"); }
+          else if(LOW == digitalRead(MOVE_EXT0_pin)) { strcat(msg, "Ext0"); }
+          else if(LOW == digitalRead(MOVE_EXT1_pin)) { strcat(msg, "Ext1"); }
+          ALARM_PRINT( Serial.println(msg); )
+
           ALARM_PRINT( Serial.print("Sending SMS..."); )
-          if(true == gprs.sendSMS("0602732751", "Alerte ! Alarme declanchee !")) {
+          if(true == gprs.sendSMS("0602732751", msg)) {
             ALARM_PRINT( Serial.println("OK"); )
           }
           else {
