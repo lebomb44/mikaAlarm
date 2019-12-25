@@ -11,13 +11,13 @@
 #define GSM_RX_pin    15
 #define GSM_POWER_pin 9
 
-#define MOVE_GARAGE_pin A9
-#define MOVE_ENTRY_pin A15
+#define MOVE_EXT_AV_pin A9
+#define MOVE_ENTRY_pin A13
 #define MOVE_CORRIDOR_pin A14
-#define MOVE_DINING_pin A13
-#define MOVE_SPARE_pin A12
-#define MOVE_EXT0_pin A11
-#define MOVE_EXT1_pin A10
+#define MOVE_DINING_pin A15
+#define MOVE_PORTE_GARAGE_pin A12
+#define MOVE_EXT_SAM_pin A11
+#define MOVE_EXT_PERG_pin A10
 
 #define BUZZER_pin 17
 #define CMD_pin 16
@@ -91,13 +91,13 @@ void setup() {
   pinMode(GSM_POWER_pin, OUTPUT);
   digitalWrite(GSM_POWER_pin, LOW);
 
-  pinMode(MOVE_GARAGE_pin, INPUT);
+  pinMode(MOVE_EXT_AV_pin, INPUT);
   pinMode(MOVE_ENTRY_pin, INPUT_PULLUP);
   pinMode(MOVE_CORRIDOR_pin, INPUT_PULLUP);
   pinMode(MOVE_DINING_pin, INPUT_PULLUP);
-  pinMode(MOVE_SPARE_pin, INPUT_PULLUP);
-  pinMode(MOVE_EXT0_pin, INPUT_PULLUP);
-  pinMode(MOVE_EXT1_pin, INPUT_PULLUP);
+  pinMode(MOVE_PORTE_GARAGE_pin, INPUT_PULLUP);
+  pinMode(MOVE_EXT_SAM_pin, INPUT_PULLUP);
+  pinMode(MOVE_EXT_PERG_pin, INPUT_PULLUP);
 
   pinMode(BUZZER_pin, OUTPUT);
   pinMode(CMD_pin, INPUT_PULLUP);
@@ -150,33 +150,33 @@ void loop() {
     }
     cmd_previous = true;
 
-    if((HIGH == digitalRead(MOVE_GARAGE_pin)) \
+    if((HIGH == digitalRead(MOVE_EXT_AV_pin)) \
     || (HIGH == digitalRead(MOVE_ENTRY_pin)) \
     || (HIGH == digitalRead(MOVE_CORRIDOR_pin)) \
     || (HIGH == digitalRead(MOVE_DINING_pin)) \
-    || (HIGH == digitalRead(MOVE_SPARE_pin)) \
-    || (LOW == digitalRead(MOVE_EXT0_pin)) \
-    || (LOW == digitalRead(MOVE_EXT1_pin))) {
+    || (HIGH == digitalRead(MOVE_PORTE_GARAGE_pin)) \
+    || (LOW == digitalRead(MOVE_EXT_SAM_pin)) \
+    || (LOW == digitalRead(MOVE_EXT_PERG_pin))) {
       if(true == alarm_started) {
         if(false == alarm_triggered) {
-          ALARM_PRINT( Serial.print("Garage: "); Serial.println(digitalRead(MOVE_GARAGE_pin)); )
-          ALARM_PRINT( Serial.print("Entry : "); Serial.println(digitalRead(MOVE_ENTRY_pin)); )
+          ALARM_PRINT( Serial.print("ExtAV    : "); Serial.println(digitalRead(MOVE_EXT_AV_pin)); )
+          ALARM_PRINT( Serial.print("Entry    : "); Serial.println(digitalRead(MOVE_ENTRY_pin)); )
           ALARM_PRINT( Serial.print("Corridor : "); Serial.println(digitalRead(MOVE_CORRIDOR_pin)); )
-          ALARM_PRINT( Serial.print("Dining : "); Serial.println(digitalRead(MOVE_DINING_pin)); )
-          ALARM_PRINT( Serial.print("Spare : "); Serial.println(digitalRead(MOVE_SPARE_pin)); )
-          ALARM_PRINT( Serial.print("Ext0  : "); Serial.println(!digitalRead(MOVE_EXT0_pin)); )
-          ALARM_PRINT( Serial.print("Ext1  : "); Serial.println(!digitalRead(MOVE_EXT1_pin)); )
+          ALARM_PRINT( Serial.print("Dining   : "); Serial.println(digitalRead(MOVE_DINING_pin)); )
+          ALARM_PRINT( Serial.print("PorteGar : "); Serial.println(digitalRead(MOVE_PORTE_GARAGE_pin)); )
+          ALARM_PRINT( Serial.print("ExtSaM   : "); Serial.println(!digitalRead(MOVE_EXT_SAM_pin)); )
+          ALARM_PRINT( Serial.print("ExtPerg  : "); Serial.println(!digitalRead(MOVE_EXT_PERG_pin)); )
 
           char msg[sizeof(MSG_ALERT)+10] = {0};
           memset(msg, 0, sizeof(msg));
           strcpy(msg, MSG_ALERT);
-          if(HIGH == digitalRead(MOVE_GARAGE_pin)) { strcat(msg, "Garage"); }
+          if(HIGH == digitalRead(MOVE_EXT_AV_pin)) { strcat(msg, "ExtAV"); }
           else if(HIGH == digitalRead(MOVE_ENTRY_pin)) { strcat(msg, "Entree"); }
           else if(HIGH == digitalRead(MOVE_CORRIDOR_pin)) { strcat(msg, "Corridor"); }
           else if(HIGH == digitalRead(MOVE_DINING_pin)) { strcat(msg, "Salon"); }
-          else if(HIGH == digitalRead(MOVE_SPARE_pin)) { strcat(msg, "Spare"); }
-          else if(LOW == digitalRead(MOVE_EXT0_pin)) { strcat(msg, "Ext0"); }
-          else if(LOW == digitalRead(MOVE_EXT1_pin)) { strcat(msg, "Ext1"); }
+          else if(HIGH == digitalRead(MOVE_PORTE_GARAGE_pin)) { strcat(msg, "PorteGar"); }
+          else if(LOW == digitalRead(MOVE_EXT_SAM_pin)) { strcat(msg, "ExtSaM"); }
+          else if(LOW == digitalRead(MOVE_EXT_PERG_pin)) { strcat(msg, "ExtPerg"); }
           ALARM_PRINT( Serial.println(msg); )
 
           ALARM_PRINT( Serial.print("Sending SMS..."); )
