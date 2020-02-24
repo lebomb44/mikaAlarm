@@ -36,6 +36,8 @@ bool cmd_current = false;
 bool cmd_previous = false;
 bool alarm_started = false;
 bool alarm_triggered = false;
+uint32_t alarm_trigger_nb = 0;
+#define ALARM_TRIGGER_NB_MAX 200
 uint32_t alarm_time = 0;
 
 /* *****************************
@@ -147,6 +149,8 @@ void loop() {
       //digitalWrite(BUZZER_pin, HIGH);
       delay(200);
       digitalWrite(BUZZER_pin, LOW);
+      alarm_triggered = false;
+      alarm_trigger_nb = 0;
     }
     cmd_previous = true;
 
@@ -157,6 +161,14 @@ void loop() {
     || (HIGH == digitalRead(MOVE_PORTE_GARAGE_pin)) \
     || (LOW == digitalRead(MOVE_EXT_SAM_pin)) \
     || (LOW == digitalRead(MOVE_EXT_PERG_pin))) {
+      if(ALARM_TRIGGER_NB_MAX >= alarm_trigger_nb) {
+        alarm_trigger_nb++;
+      }
+    }
+    else {
+      alarm_trigger_nb = 0;
+    }
+    if(ALARM_TRIGGER_NB_MAX < alarm_trigger_nb) {
       if(true == alarm_started) {
         if(false == alarm_triggered) {
           ALARM_PRINT( Serial.print("ExtAV    : "); Serial.println(digitalRead(MOVE_EXT_AV_pin)); )
@@ -205,6 +217,7 @@ void loop() {
     cmd_previous = false;
     alarm_started = false;
     alarm_triggered = false;
+    alarm_trigger_nb = 0;
   }
   if(true == alarm_triggered) {
     if(alarm_time < 500000) {
