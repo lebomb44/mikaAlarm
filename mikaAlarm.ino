@@ -34,10 +34,12 @@ uint32_t gprs_checkPowerUp_counter = 0;
 uint16_t cmd_nb = 0;
 bool cmd_current = false;
 bool cmd_previous = false;
+#define DETECTOR_NB_MAX 1000
+uint16_t detector_nb = 0;
+bool detector_bool = false;
 bool alarm_started = false;
 bool alarm_triggered = false;
-uint32_t alarm_trigger_nb = 0;
-#define ALARM_TRIGGER_NB_MAX 200
+
 uint32_t alarm_time = 0;
 
 /* *****************************
@@ -143,6 +145,25 @@ void loop() {
     cmd_current = false;
   }
 
+  if((HIGH == digitalRead(MOVE_EXT_AV_pin)) \
+  || (HIGH == digitalRead(MOVE_ENTRY_pin)) \
+  || (HIGH == digitalRead(MOVE_CORRIDOR_pin)) \
+  || (HIGH == digitalRead(MOVE_DINING_pin)) \
+  || (HIGH == digitalRead(MOVE_PORTE_GARAGE_pin)) \
+  || (LOW == digitalRead(MOVE_EXT_SAM_pin)) \
+  || (LOW == digitalRead(MOVE_EXT_PERG_pin))) {
+    if(detector_nb < DETECTOR_NB_MAX) { detector_nb++; }
+  }
+  else {
+    if(0 < detector_nb) { detector_nb--; }
+  }
+  if(detector_nb > DETECTOR_NB_MAX / 2) {
+    detector_bool = true;
+  }
+  else {
+    detector_bool = false;
+  }
+
   if(true == cmd_current) {
     if(false == cmd_previous) {
       ALARM_PRINT( Serial.println("Alarm ON"); )
@@ -150,25 +171,10 @@ void loop() {
       delay(200);
       digitalWrite(BUZZER_pin, LOW);
       alarm_triggered = false;
-      alarm_trigger_nb = 0;
     }
     cmd_previous = true;
 
-    if((HIGH == digitalRead(MOVE_EXT_AV_pin)) \
-    || (HIGH == digitalRead(MOVE_ENTRY_pin)) \
-    || (HIGH == digitalRead(MOVE_CORRIDOR_pin)) \
-    || (HIGH == digitalRead(MOVE_DINING_pin)) \
-    || (HIGH == digitalRead(MOVE_PORTE_GARAGE_pin)) \
-    || (LOW == digitalRead(MOVE_EXT_SAM_pin)) \
-    || (LOW == digitalRead(MOVE_EXT_PERG_pin))) {
-      if(ALARM_TRIGGER_NB_MAX >= alarm_trigger_nb) {
-        alarm_trigger_nb++;
-      }
-    }
-    else {
-      alarm_trigger_nb = 0;
-    }
-    if(ALARM_TRIGGER_NB_MAX < alarm_trigger_nb) {
+    if(true == detector_bool) {
       if(true == alarm_started) {
         if(false == alarm_triggered) {
           ALARM_PRINT( Serial.print("ExtAV    : "); Serial.println(digitalRead(MOVE_EXT_AV_pin)); )
@@ -217,7 +223,6 @@ void loop() {
     cmd_previous = false;
     alarm_started = false;
     alarm_triggered = false;
-    alarm_trigger_nb = 0;
   }
   if(true == alarm_triggered) {
     if(alarm_time < 500000) {
